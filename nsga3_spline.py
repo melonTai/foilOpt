@@ -1,4 +1,4 @@
-import nsga3
+from nsga3_base import nsga3_base
 import numpy as np
 import random
 
@@ -31,13 +31,8 @@ import XfoilAnalize as xa
 import foilConductor as fc
 from change_output import SetIO
 import timeout_decorator
-nsga3 = nsga3.nsga3
 
-class NewXFoil(XFoil):
-    def airfoil(self, airfoil):
-        super().airfoil(airfoil)
-
-class nsga3_spline(nsga3):
+class nsga3_spline(nsga3_base):
     #遺伝子
     #[x1, x2, x3,...,x6, y1, y2, ...., y6]
     def __init__(self):

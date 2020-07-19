@@ -22,7 +22,7 @@ import sys
 import traceback
 
 #並列処理
-from multiprocessing.dummy import Pool,Value
+from multiprocessing import Pool,Value
 
 
 #翼型解析ライブラリ
@@ -34,6 +34,138 @@ import foilConductor as fc
 from change_output import SetIO
 from nsga3_base import nsga3_base
 
+def decoder(individual,code_division):
+    #遺伝子を混合比にデコード
+    ratios = []
+    for i in range(0,len(individual),code_division):
+        ratio = 0
+        for j in range(code_division):
+            ratio += individual[i+j]
+        ratios.append(ratio)
+    return ratios
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#(いじるのここから
+#=====================================================
+#評価関数の定義
+#=====================================================
+def evaluate(individual, code_division, datfiles, re, NOBJ):
+
+    #----------------------------------
+    #遺伝子に基づいて新翼型を生成
+    #----------------------------------
+    #遺伝子をデコード
+    ratios = self.decoder(individual, code_division)
+
+    #遺伝子に基づき翼型を混合して、新しい翼型を作る
+    datlist_list = [fc.read_datfile(file) for file in datfiles]
+    datlist_shaped_list = [fc.shape_dat(datlist) for datlist in datlist_list]
+    newdat = fc.interpolate_dat(datlist_shaped_list,ratios)
+
+    #翼型の形に関する情報を取得する
+    #foilpara == [最大翼厚、最大翼厚位置、最大キャンバ、最大キャンバ位置、S字の強さ]
+    foil_para = fc.get_foil_para(newdat)
+
+    #新しい翼型をAerofoilオブジェクトに適用
+    datx = np.array([ax[0] for ax in newdat])
+    daty = np.array([ax[1] for ax in newdat])
+    newfoil = Airfoil(x = datx, y = daty)
+
+    mt, mta, mc, mca, s, crossed, bd, bt, bc, smooth, td = foil_para
+
+    #----------------------------------
+    #翼の形に関する拘束条件
+    #----------------------------------
+    """
+    penalty = 0
+    for g, p in zip(self.gs, self.penalties):
+        if(not g):
+            penalty += p
+    """
+
+    penalty = 0
+    print('===================')
+    if(mc<0):
+        print("out of the border")
+        print("reverse_cmaber")
+        penalty -= mc
+    if(mt<0.08):
+        print("out of the border")
+        print("too_thin")
+        penalty += 0.08-mt
+    if(mt>0.11):
+        print("out of the border")
+        print("too_fat")
+        penalty += mt-0.11
+    #if(foil_para[4]>0.03):
+    #    print("out of the border")
+    #    print("peacock")
+    #    print('===================')
+    #    return (1.0+(foil_para[4]-0.03),)*NOBJ
+    if(mta<0.23):
+        print("out of the border")
+        print("Atama Dekkachi!")
+        penalty += 0.23 - mta
+    if(mta>0.3):
+        print("out of the border")
+        print("Oshiri Dekkachi!")
+        penalty += mta - 0.3
+
+    #----------------------------------
+    #新翼型の解析
+    #----------------------------------
+    xf = XFoil()
+    xf.airfoil = newfoil
+    #レイノルズ数の設定
+    xf.Re = re
+    #境界要素法計算時1ステップにおける計算回数
+    xf.max_iter = 60
+    #print("hi")
+    #print(vars)
+    #scope = locals()
+    #var0, var1, var2, var3, var4, var5, var6, var7 = [0 if var == None or var == '' else eval(var,scope) for var in self.vars]
+
+    #計算結果格納
+    a, cl, cd, cm, cp = xf.cseq(0.4, 1.1, 0.1)
+    lr = [l/d for l, d in zip(cl,cd)]
+    #----------------------------------
+    #目的値
+    #----------------------------------
+    """
+    try:
+        obj1,obj2,obj3 = [eval(o) for o in Os]
+    except Exception as e:
+        obj1,obj2,obj3=[1.0]*self.NOBJ
+        traceback.print_exc()
+    """
+
+    try:
+        #揚抗比の逆数を最小化
+        obj1 = 1/lr[1]
+        #揚抗比のピークを滑らかに(安定性の最大化)
+        maxlr = max(lr)
+        maxlr_index = lr.index(maxlr)
+        obj2 = abs(maxlr - lr[maxlr_index+1])
+
+        #下面の反りを最小化(製作再現性の最大化)
+        obj3 = s
+    except Exception as e:
+        obj1,obj2,obj3=[1.0]*NOBJ
+        traceback.print_exc()
+
+    if (np.isnan(obj1) or obj1 > 1):
+        obj1 = 1
+    if (np.isnan(obj2) or obj2 > 1):
+        obj2 = 1
+    if (np.isnan(obj3) or obj3 > 1):
+        obj3 = 1
+
+    obj1 += penalty
+    obj2 += penalty
+    obj3 += penalty
+
+    return [obj1, obj2, obj3]
+#いじるのここまで)
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class nsga3(nsga3_base):
     def __init__(self):
         super().__init__()
@@ -45,140 +177,16 @@ class nsga3(nsga3_base):
         self.NDIM = len(self.datfiles)*self.code_division#遺伝子数=親翼型の数×比率の分解能
         self.thread = 4
         self.re = 150000
-
-    def decoder(self,individual,code_division):
-        #遺伝子を混合比にデコード
-        ratios = []
-        for i in range(0,len(individual),code_division):
-            ratio = 0
-            for j in range(code_division):
-                ratio += individual[i+j]
-            ratios.append(ratio)
-        return ratios
-
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    #(いじるのここから
-    #=====================================================
-    #評価関数の定義
-    #=====================================================
-    def evaluate(self,individual):
-
-        #----------------------------------
-        #遺伝子に基づいて新翼型を生成
-        #----------------------------------
-        #遺伝子をデコード
-        ratios = self.decoder(individual, self.code_division)
-
-        #遺伝子に基づき翼型を混合して、新しい翼型を作る
-        datlist_list = [fc.read_datfile(file) for file in self.datfiles]
-        datlist_shaped_list = [fc.shape_dat(datlist) for datlist in datlist_list]
-        newdat = fc.interpolate_dat(datlist_shaped_list,ratios)
-
-        #翼型の形に関する情報を取得する
-        #foilpara == [最大翼厚、最大翼厚位置、最大キャンバ、最大キャンバ位置、S字の強さ]
-        foil_para = fc.get_foil_para(newdat)
-
-        #新しい翼型をAerofoilオブジェクトに適用
-        datx = np.array([ax[0] for ax in newdat])
-        daty = np.array([ax[1] for ax in newdat])
-        newfoil = Airfoil(x = datx, y = daty)
-
-        mt, mta, mc, mca, s, crossed, bd, bt, bc, smooth, td = foil_para
-
-        #----------------------------------
-        #翼の形に関する拘束条件
-        #----------------------------------
-        """
-        penalty = 0
-        for g, p in zip(self.gs, self.penalties):
-            if(not g):
-                penalty += p
-        """
-
-        penalty = 0
-        print('===================')
-        if(mc<0):
-            print("out of the border")
-            print("reverse_cmaber")
-            penalty -= mc
-        if(mt<0.08):
-            print("out of the border")
-            print("too_thin")
-            penalty += 0.08-mt
-        if(mt>0.11):
-            print("out of the border")
-            print("too_fat")
-            penalty += mt-0.11
-        #if(foil_para[4]>0.03):
-        #    print("out of the border")
-        #    print("peacock")
-        #    print('===================')
-        #    return (1.0+(foil_para[4]-0.03),)*NOBJ
-        if(mta<0.23):
-            print("out of the border")
-            print("Atama Dekkachi!")
-            penalty += 0.23 - mta
-        if(mta>0.3):
-            print("out of the border")
-            print("Oshiri Dekkachi!")
-            penalty += mta - 0.3
-
-        #----------------------------------
-        #新翼型の解析
-        #----------------------------------
-        xf = XFoil()
-        xf.airfoil = newfoil
-        #レイノルズ数の設定
-        xf.Re = self.re
-        #境界要素法計算時1ステップにおける計算回数
-        xf.max_iter = 60
-        #print("hi")
-        #print(vars)
-        #scope = locals()
-        #var0, var1, var2, var3, var4, var5, var6, var7 = [0 if var == None or var == '' else eval(var,scope) for var in self.vars]
-
-        #計算結果格納
-        a, cl, cd, cm, cp = xf.cseq(0.4, 1.1, 0.1)
-        lr = [l/d for l, d in zip(cl,cd)]
-        #----------------------------------
-        #目的値
-        #----------------------------------
-        """
-        try:
-            obj1,obj2,obj3 = [eval(o) for o in Os]
-        except Exception as e:
-            obj1,obj2,obj3=[1.0]*self.NOBJ
-            traceback.print_exc()
-        """
-
-        try:
-            #揚抗比の逆数を最小化
-            obj1 = 1/lr[1]
-            #揚抗比のピークを滑らかに(安定性の最大化)
-            maxlr = max(lr)
-            maxlr_index = lr.index(maxlr)
-            obj2 = abs(maxlr - lr[maxlr_index+1])
-
-            #下面の反りを最小化(製作再現性の最大化)
-            obj3 = s
-        except Exception as e:
-            obj1,obj2,obj3=[1.0]*self.NOBJ
-            traceback.print_exc()
-
-        if (np.isnan(obj1) or obj1 > 1):
-            obj1 = 1
-        if (np.isnan(obj2) or obj2 > 1):
-            obj2 = 1
-        if (np.isnan(obj3) or obj3 > 1):
-            obj3 = 1
-
-        obj1 += penalty
-        obj2 += penalty
-        obj3 += penalty
-
-        return [obj1, obj2, obj3]
-    #いじるのここまで)
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    def setup(self):
+        super().setup()
+        self.toolbox.register(
+            "evaluate",
+            evaluate,
+            code_division = self.code_division,
+            datfiles = self.datfiles,
+            re = self.re,
+            NOBJ = self.NOBJ
+        )
 
     #=====================================================
     #最適化アルゴリズム本体
