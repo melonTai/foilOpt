@@ -32,61 +32,19 @@ from xfoil.model import Airfoil
 #自作モジュール
 import foilConductor as fc
 from change_output import SetIO
+from nsga3_base import nsga3_base
 
-class nsga3(object):
+class nsga3(nsga3_base):
     def __init__(self):
-        #=====================================================
-        #親翼型の選択
-        #=====================================================
+        super().__init__()
         self.obj1_max = 1
         self.obj2_max = 1
         self.obj3_max = 1
-        #self.foil_path = 'foils/'
         self.datfiles = ['foils/AG24.dat','foils/AG14.dat','foils/AG16.dat','foils/AG38.dat','foils/SD8040 (10%).dat']
-        #['AG24.dat','AG14.dat','AG16.dat','AG38.dat','SD8040 (10%).dat','SD7084 (9.6%).dat','SD7037.dat']
-        #---------------------------------------
-        #フィルにパスをつなぐ
-        """
-        for i in range(len(self.datfiles)):
-            self.datfiles[i] = self.foil_path + self.datfiles[i]
-        """
-        #---------------------------------------
-
-        #=====================================================
-        #最適化の定義
-        #=====================================================
-        self.NOBJ = 3#評価関数の数
         self.code_division = 4#混合比率をコードにする際の分解数
         self.NDIM = len(self.datfiles)*self.code_division#遺伝子数=親翼型の数×比率の分解能
-        self.P = 12
-        self.BOUND_LOW, self.BOUND_UP = -5.0/self.code_division, 5.0/self.code_division#遺伝子定義域
-        self.MU = 100#人口の数
-        self.NGEN = 200#世代数
-        self.CXPB = 1.0#交叉の確立(1を100%とする)
-        self.MUTPB = 0.7#突然変異の確立(1を100%とする)
-        self.cx_eta = 10
-        self.mut_eta = 20
         self.thread = 4
         self.re = 150000
-
-    def setup(self):
-        # Create uniform reference point
-        self.ref_points = tools.uniform_reference_points(self.NOBJ, self.P)
-
-        # Create classes
-        creator.create("FitnessMin", base.Fitness, weights=(-1.0,) * self.NOBJ)
-        creator.create("Individual", list, fitness=creator.FitnessMin)
-        ##
-
-        self.toolbox = base.Toolbox()
-        self.toolbox.register("attr_float", self.uniform, self.BOUND_LOW, self.BOUND_UP, self.NDIM)
-        self.toolbox.register("individual", tools.initIterate, creator.Individual, self.toolbox.attr_float)
-        self.toolbox.register("population", tools.initRepeat, list, self.toolbox.individual)
-
-        self.toolbox.register("evaluate",self.evaluate)
-        self.toolbox.register("mate", tools.cxSimulatedBinaryBounded, low=self.BOUND_LOW, up=self.BOUND_UP, eta=self.cx_eta)
-        self.toolbox.register("mutate", tools.mutPolynomialBounded, low=self.BOUND_LOW, up=self.BOUND_UP, eta=self.mut_eta, indpb=1/self.NDIM)
-        self.toolbox.register("select", tools.selNSGA3, ref_points=self.ref_points)
 
     def decoder(self,individual,code_division):
         #遺伝子を混合比にデコード
@@ -221,15 +179,6 @@ class nsga3(object):
         return [obj1, obj2, obj3]
     #いじるのここまで)
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    # Toolbox initialization
-    def uniform(self,low, up, size=None):
-        try:
-            return [random.uniform(a, b) for a, b in zip(low, up)]
-        except TypeError:
-            return [random.uniform(a, b) for a, b in zip([low] * size, [up] * size)]
-    ##
-
 
     #=====================================================
     #最適化アルゴリズム本体
@@ -366,33 +315,6 @@ class nsga3(object):
                 print(logbook.stream)
 
         return pop, logbook
-
-        def __getstate__(self):
-            self_dict = self.__dict__.copy()
-            del self_dict['pool']
-            return self_dict
-
-        def __setstate__(self, state):
-            self.__dict__.update(state)
-"""
-def input_param(d):
-    global datfiles, MU, NGEN, CXPB, MUTPB, cx_eta, mut_eta, thread
-    global re, gs, penalties, Os, vars
-
-    datfiles = d['datfiles']
-    MU = d['MU']
-    NGEN = d['NGEN']
-    CXPB = d['CXPB']
-    MUTPB = d['MUTPB']
-    cx_eta = d['cx_eta']
-    mut_eta = d['mut_eta']
-    thread = d['thread']
-    re = d['re']
-    gs = d['gs']
-    penalties = d['penalties']
-    Os = d['Os']
-    vars = d['vars']
-"""
 
 if __name__ == "__main__":
     ng = nsga3()
