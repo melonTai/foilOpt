@@ -42,7 +42,6 @@ class nsga3_spline(nsga3):
     #[x1, x2, x3,...,x6, y1, y2, ...., y6]
     def __init__(self):
         super().__init__()
-        self.code_division = 1
         self.NDIM = 12
         self.BOUND_LOW = [0.66, 0.33,  0.15,  0.15,  0.33, 0.66,\
                          -0.05, -0.05, -0.05,  -0.2, -0.2, -0.2]

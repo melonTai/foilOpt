@@ -84,7 +84,7 @@ def linear_reverse(xs, ys, xn):
 def shape_dat(datlist):
     #datlist==[[x,y],....]
     """
-        X座標を揃える関数
+        上面と下面のX座標を揃える関数
     """
     datlist_shaped = []
     datlist_x = [dat[0] for dat in datlist]
@@ -103,13 +103,42 @@ def _return_abs(n):
 
 def spline_foil(x,y,num = 300):
     """
-    #x:controll points of x axis
-    #y:controll points of y axis
+    受け取った座標を3次b-spline補完する関数
+
+    # argument
+        - x
+            controll points of x axis
+        - y
+            controll points of y axis
+        - num
+            size of return list[0] and list[1]
+    # return
+        - x
+            controll pointsをスプライン補完したときのx座標リスト
+        - y
+            controll pointsをスプライン補完したときのy座標リスト
     """
     tck,u = interpolate.splprep([x,y], k=3, s=0)
     u = np.linspace(0.0, 1.0,num=num,endpoint=True)
     x, y = interpolate.splev(u,tck)
     return x, y
+
+def beauty(x,y):
+    """
+    # argument
+        - x
+            x座標のリスト
+        - y
+            y座標のリスト
+    # return
+        下記論文で定義される曲線の歪みエネルギー
+        https://ipsj.ixsq.nii.ac.jp/ej/index.php?action=pages_view_main&active_action=repository_action_common_download&item_id=13813&item_no=1&attribute_id=1&file_no=1&page_id=13&block_id=8
+        小さいほどなめらか
+    """
+        yd = [(y[i+1] - y[i])/(x[i+1] - x[i]) for i in range(len(x)-1)]
+        ydd = [(yd[i+1] - yd[i])/(x[i+1] - x[i]) for i in range(len(yd)-1)]
+        beauty = sum([ydd[i]**2/((1 + yd[i]**2)**2.5)*(x[i + 1] - x[i]) for i in range(len(ydd))])
+        return abs(beauty)
 
 def get_foil_para(datlist_shaped):
     """
@@ -117,6 +146,38 @@ def get_foil_para(datlist_shaped):
         翼厚、キャンバ、最大翼厚位置、最大キャンバ位置など
 
         ※shape_dat()関数で整形した座標を渡すこと※
+        # argument
+            - datlist_shaped
+                座標リスト[[x1,x2,...],[y1,y2,...]]
+        # return
+            - max_thick(float)
+                最大翼厚(百分率)
+            - max_thick_at(float)
+                最大翼厚位置(百分率)
+            - max_camber(float)
+                最大キャンバ(百分率)
+            - max_camber_at(float)
+                最大キャンバ位置(百分率)
+            - shape_s(float)
+                下面側について
+                (y座標最大値) - (y座標最小値)
+            - crossed(bool)
+                座標が交差していたらTrue
+                非交差False
+            - beautydat(float)
+                beauty([翼型のx座標],[翼型のy座標])
+                翼型の滑らかさを示す
+                小さいほど滑らか
+            - beautythick(float)
+                beauty([翼型のx座標後縁から前縁まで(1.0~0.0まで)],[翼厚分布])
+                翼厚分布の滑らかさを示す
+                小さいほど滑らか
+            - beautycamber(float)
+                beauty([翼型のx座標後縁から前縁まで(1.0~0.0まで)],[キャンバ分布])
+                中心線の滑らかさを示す
+                小さいほど滑らか
+            - thick_list(float list)
+                翼厚分布
     """
     max_thick = 0
     max_thick_at = 0
@@ -153,15 +214,11 @@ def get_foil_para(datlist_shaped):
     temp = [ydd[i]**2/((1 + yd[i]**2)**2.5)*(datlist_x[i + 1] - datlist_x[i]) for i in range(len(ydd))]
     beautydat = sum(temp)
 
-    td = [(thick_list[i+1] - thick_list[i])/(datlist_x_u[i+1] - datlist_x_u[i]) for i in range(len(thick_list)-1)]
-    tdd = [(td[i+1] - td[i])/(datlist_x_u[i+1] - datlist_x_u[i]) for i in range(len(td)-1)]
-    beautythick = sum([tdd[i]**2/((1 + td[i]**2)**2.5)*(datlist_x_u[i + 1] - datlist_x_u[i]) for i in range(len(tdd))])
+    beautythick = beauty(datlist_x_u,thick_list)
 
-    cd = [(camber_list[i+1] - camber_list[i])/(datlist_x_u[i+1] - datlist_x_u[i]) for i in range(len(camber_list)-1)]
-    cdd =[(cd[i+1]-cd[i])/(datlist_x_u[i+1] - datlist_x_u[i]) for i in range(len(cd)-1)]
-    beautycamber = sum([cdd[i]**2/((1 + cd[i]**2)**2.5)*(datlist_x_u[i+1] - datlist_x_u[i]) for i in range(len(cdd))])
+    beautycamber = beauty(datlist_x_u, camber_list)
 
-    return max_thick, max_thick_at, max_camber, max_camber_at, shape_s, crossed, abs(beautydat), abs(beautythick), abs(beautycamber), smooth, thick_list
+    return max_thick, max_thick_at, max_camber, max_camber_at, shape_s, crossed, beautydat, beautythick, beautycamber, smooth, thick_list
 
 def interpolate_dat(datlist_shaped_list, propotions):
     #(混ぜる翼型datリスト群、各翼型の混ぜる比率リスト)
@@ -179,13 +236,6 @@ def interpolate_dat(datlist_shaped_list, propotions):
     datlist_new = [[dat_new_x,dat_new_y] for dat_new_x, dat_new_y in zip(datlist_new_x, datlist_new_y)]
 
     return datlist_new
-
-def uniform(low, up, size=None):
-    try:
-        return [random.uniform(a, b) for a, b in zip(low, up)]
-    except TypeError:
-        return [random.uniform(a, b) for a, b in zip([low] * size, [up] * size)]
-
 
 
 if __name__=='__main__':

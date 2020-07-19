@@ -20,12 +20,11 @@
 ### const.py
 定数を保存するファイル
 
-### main_xfapi.py
+### main_mixfoil.py
 アルゴリズムNSGA3を用いて、翼型を最適化するファイル。
 翼型の既存翼型の混合によって生成し、その混合比を最適化する
 このファイルから実行できる。
 
-#### 実行環境
 ライブラリ(xfoil)の仕様で以下環境が必要
 https://pypi.org/project/xfoil/
 - gfortran
@@ -33,15 +32,14 @@ https://pypi.org/project/xfoil/
 - python3.6
 
 
-### nsga3.py
-main_xfapi.pyをクラス化したもの
+### nsga3_mixfoil.py
+main_mixfoil.pyをクラス化したもの
 
 ### nsga3_spline.py
 アルゴリズムNSGA3を用いて、翼型を最適化するファイル。
 翼型を8つの点を結んだスプライン曲線によって生成し、その8つの点を最適化する。
 このファイルから実行できる。
 
-#### 実行環境
 ライブラリ(xfoil)の仕様で以下環境が必要
 https://pypi.org/project/xfoil/
 - gfortran
