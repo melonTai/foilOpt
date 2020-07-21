@@ -135,10 +135,10 @@ def beauty(x,y):
         https://ipsj.ixsq.nii.ac.jp/ej/index.php?action=pages_view_main&active_action=repository_action_common_download&item_id=13813&item_no=1&attribute_id=1&file_no=1&page_id=13&block_id=8
         小さいほどなめらか
     """
-        yd = [(y[i+1] - y[i])/(x[i+1] - x[i]) for i in range(len(x)-1)]
-        ydd = [(yd[i+1] - yd[i])/(x[i+1] - x[i]) for i in range(len(yd)-1)]
-        beauty = sum([ydd[i]**2/((1 + yd[i]**2)**2.5)*(x[i + 1] - x[i]) for i in range(len(ydd))])
-        return abs(beauty)
+    yd = [(y[i+1] - y[i])/(x[i+1] - x[i]) for i in range(len(x)-1)]
+    ydd = [(yd[i+1] - yd[i])/(x[i+1] - x[i]) for i in range(len(yd)-1)]
+    beauty = sum([ydd[i]**2/((1 + yd[i]**2)**2.5)*(x[i + 1] - x[i]) for i in range(len(ydd))])
+    return abs(beauty)
 
 def get_foil_para(datlist_shaped):
     """

@@ -92,7 +92,7 @@ class nsga3_base(object):
         self.NOBJ = 3#評価関数の数
         self.NDIM = 3
         self.P = 12
-        self.BOUND_LOW, self.BOUND_UP = -5.0/self.code_division, 5.0/self.code_division#遺伝子定義域
+        self.BOUND_LOW, self.BOUND_UP = -5.0, 5.0#遺伝子定義域
         self.MU = 100#人口の数
         self.NGEN = 200#世代数
         self.CXPB = 1.0#交叉の確立(1を100%とする)
@@ -112,7 +112,7 @@ class nsga3_base(object):
         self.ref_points = tools.uniform_reference_points(self.NOBJ, self.P)
 
         # Create classes
-        creator.create("FitnessMin", base.Fitness, weights=self.weights
+        creator.create("FitnessMin", base.Fitness, weights=self.weights)
         creator.create("Individual", list, fitness=creator.FitnessMin)
         ##
 
@@ -202,3 +202,6 @@ if __name__ == "__main__":
     #翼型最適化開始
     try:
         pop, stats = ng.main()
+    except KeyboardInterrupt:
+        print("Ctrl + Cで停止しました")
+        pass

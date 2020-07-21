@@ -34,6 +34,7 @@ import foilConductor as fc
 from change_output import SetIO
 from nsga3_base import nsga3_base
 
+
 def decoder(individual,code_division):
     #遺伝子を混合比にデコード
     ratios = []
@@ -48,8 +49,8 @@ def decoder(individual,code_division):
 #=====================================================
 #評価関数の定義
 #=====================================================
-def evaluate(individual, code_division, datfiles, re, NOBJ):
-
+def evaluate(args):
+    individual, code_division, datfiles, re, NOBJ = args
     #----------------------------------
     #遺伝子に基づいて新翼型を生成
     #----------------------------------
@@ -194,8 +195,6 @@ class nsga3(nsga3_base):
     def main(self,seed=None):
         self.setup()
         #同時並列数(空白にすると最大数になる)
-        self.pool = Pool(self.thread)
-        self.toolbox.register("map", self.pool.map)
 
         random.seed(seed)
         # Initialize statistics object
@@ -222,7 +221,9 @@ class nsga3(nsga3_base):
                 #0世代目の評価
                 # Evaluate the individuals with an invalid fitness
                 invalid_ind = [ind for ind in pop if not ind.fitness.valid]
-                fitnesses = self.toolbox.map(self.toolbox.evaluate, invalid_ind)
+                args_list = [(ind, self.code_division, self.datfiles, self.re, self.NOBJ) for ind in invalid_ind]
+                with Pool(self.thread) as p:
+                    fitnesses = p.map(evaluate, args_list)
                 for ind, fit in zip(invalid_ind, fitnesses):
                     ind.fitness.values = fit
 
@@ -235,8 +236,10 @@ class nsga3(nsga3_base):
                 offspring = algorithms.varAnd(pop, self.toolbox, self.CXPB, self.MUTPB)
                 #評価
                 # Evaluate the individuals with an invalid fitness
-                invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-                fitnesses = self.toolbox.map(self.toolbox.evaluate, invalid_ind)
+                invalid_ind = [ind for ind in pop if not ind.fitness.valid]
+                args_list = [(ind, self.code_division, self.datfiles, self.re, self.NOBJ) for ind in invalid_ind]
+                with Pool(self.thread) as p:
+                    fitnesses = p.map(evaluate, args_list)
                 for ind, fit in zip(invalid_ind, fitnesses):
                     ind.fitness.values = fit
 
@@ -325,6 +328,7 @@ class nsga3(nsga3_base):
         return pop, logbook
 
 if __name__ == "__main__":
+    __spec__ = None
     ng = nsga3()
     #翼型最適化開始
     try:

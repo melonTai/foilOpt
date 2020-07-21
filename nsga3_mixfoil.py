@@ -132,6 +132,7 @@ class nsga3(nsga3_base):
         xf.Re = self.re
         #境界要素法計算時1ステップにおける計算回数
         xf.max_iter = 60
+        xf.print = False
         #print("hi")
         #print(vars)
         #scope = locals()
