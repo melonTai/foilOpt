@@ -18,10 +18,6 @@ import os
 import sys
 import traceback
 
-#並列処理
-from multiprocessing.dummy import Pool,Value
-
-
 #翼型解析ライブラリ
 from xfoil import XFoil
 from xfoil.model import Airfoil
@@ -42,7 +38,7 @@ class nsga3_spline(nsga3_base):
                          -0.05, -0.05, -0.05,  -0.2, -0.2, -0.2]
         self.BOUND_UP = [0.85, 0.66, 0.33, 0.33, 0.66, 0.85,\
                           0.4,  0.4,  0.4,  0.2, 0.2, 0.2]
-        self.re = 50000
+        self.re = 5000
         self.NOBJ = 2
         self.MU = 100
         self.NGEN = 300#世代数
@@ -50,11 +46,7 @@ class nsga3_spline(nsga3_base):
         self.MUTPB = 1.0#突然変異の確立(1を100%とする)
         self.cx_eta = 20
         self.mut_eta = 20
-        self.thread = 4
-        self.obj1_max =  3.0
-        self.obj2_max = 3.0
-        #self.obj3_max = 3.0
-        self.delta = 1e10
+
     def readPop(self,file,gen):
         f=open(file)
         fd = f.read()
@@ -79,6 +71,7 @@ class nsga3_spline(nsga3_base):
         return file
 
     def evaluate(self,individual):
+        DELTA = 1e10
         print("====================")
         #----------------------------------
         #遺伝子に基づいて新翼型を生成
@@ -91,7 +84,7 @@ class nsga3_spline(nsga3_base):
         y = individual[int(len(individual)/2):]
         if not (all([u - d > 0 for u, d in zip(y[:int(len(y)/2)], y[int(len(y)/2):])]) or all([u - d < 0 for u, d in zip(y[:int(len(y)/2)], y[int(len(y)/2):])])):
             print("crossed")
-            return [self.delta*10]*self.NOBJ
+            return [DELTA*10]*self.NOBJ
         y.insert(0,0.0)
         y.insert(int(len(y)/2)+1,0.0)
         y.append(0.0)
@@ -105,7 +98,7 @@ class nsga3_spline(nsga3_base):
 
         if crossed:
             print("crossed_a")
-            return [self.delta*10]*self.NOBJ
+            return [DELTA*10]*self.NOBJ
         else:
             print("hi_a")
 
@@ -114,6 +107,7 @@ class nsga3_spline(nsga3_base):
         daty = np.array(newdat[1][::-1])
         newfoil = Airfoil(x = datx, y = daty)
 
+        #翼型の形に関する拘束条件
         penalty = 0
         if not all([t >= 0.0035 for t in td[10:80]]):
             penalty += 100 * (sum([abs(t - 0.0035)*10 for t in td[15:85] if t - 0.0035 < 0]))
@@ -123,36 +117,14 @@ class nsga3_spline(nsga3_base):
             penalty += 100 * (mta - 0.4)
         if mc < 0.0:
             penalty += 100 * (-mc)
-
-        #if crossed:
-        #    print("crossed_after")
-        #    return [self.delta*10]*self.NOBJ
-        #else:
-        #    print("hi")
         if datx[0] > 1.002 or datx[0] < 0.998:
             print("invalid foil")
-            return [self.delta*10]*self.NOBJ
-        #id = str(os.getpid())
-        #print(id)
-        #dir_path = 'dump'
-        #try:
-        #    os.makedirs(dir_path)
-        #except FileExistsError:
-        #    pass
-        #newdat = [[x, y] for x, y in zip(newdat[0], newdat[1])]
-        #newfile_name = 'newfoil' + id + '.dat'
-        #foilfile = fc.write_datfile(datlist=newdat,newfile_name = dir_path + '/' +  newfile_name)
-
+            return [DELTA*10]*self.NOBJ
         #----------------------------------
         #新翼型の解析
         #----------------------------------
         try:
             xf = XFoil()
-            print("========x=======")
-            print(datx)
-            print("========y=======")
-            print(daty)
-            #xf.foilfole = foilfile
             #レイノルズ数の設定
             xf.airfoil = newfoil
             xf.Re = self.re
@@ -174,23 +146,21 @@ class nsga3_spline(nsga3_base):
                 obj1 = self.delta
             #揚抗比のピークを滑らかに(安定性の最大化)
             obj2 = cd
-            #obj3 = bc
+
+
         except Exception as e:
-            obj1,obj2=[self.delta]*self.NOBJ
+            obj1,obj2=[DELTA]*self.NOBJ
             traceback.print_exc()
 
         if (np.isnan(obj1)):
-            obj1 = self.delta
+            obj1 = DELTA
         if (np.isnan(obj2)):
-            obj2 = self.delta
-        print(foil_para)
+            obj2 = DELTA
+
         return [obj1 + penalty, obj2 + penalty]
 
     def main(self):
         self.setup()
-        #同時並列数(空白にすると最大数になる)
-        self.pool = Pool(self.thread)
-        self.toolbox.register("map", self.pool.map)
 
         # Initialize statistics object
         stats = tools.Statistics(lambda ind: ind.fitness.values)
@@ -203,8 +173,8 @@ class nsga3_spline(nsga3_base):
         logbook.header = "gen", "evals", "std", "min", "avg", "max"
 
         #初期化(個体生成のこと)
-        pop = [creator.Individual(a) for a in self.readPop('pop1.log',-1)]#self.toolbox.population(n=self.MU)#
-        start = 98
+        pop = self.toolbox.population(n=self.MU)#[creator.Individual(a) for a in self.readPop('pop1.log',-1)]##
+        start = 0
         #進化の始まり
         # Begin the generational process
         for gen in range(start,self.NGEN):
@@ -240,20 +210,10 @@ class nsga3_spline(nsga3_base):
 
             #評価
             pop_fit = np.array([ind.fitness.values for ind in pop])
-            if (gen == start):
-                temp = [fit[0] for fit in pop_fit if fit[0] < self.delta]
-                if len(temp) > 0:
-                    self.obj1_max = max(temp)
-                temp = [fit[1] for fit in pop_fit if fit[1] < self.delta]
-                if len(temp) > 0:
-                    self.obj2_max = max(temp)
-                #temp = [fit[2] for fit in pop_fit if fit[2] != self.delta]
-                #if len(temp) > 0:
-                #    self.obj3_max = max(temp)
+
             #----------------------------------
             #途中経過プロット
             #----------------------------------
-            self.writePop(pop,'pop1.log')
             #1世代ごとに翼型をファイルに書き出す
             k = 0
             for ind in pop:
@@ -278,18 +238,7 @@ class nsga3_spline(nsga3_base):
                 except Exception as e:
                     print("message:{0}".format(e))
 
-            ##翼型それぞれの評価値を出力する
-            print("=============gen" + str(gen) + "===================")
-            k = 0
-            for ind, fit in zip(pop, pop_fit):
-                try:
-                    k += 1
-                    print(k)
-                    print("individual:" + str(ind) + "\nfit:" + str(fit))
-                except Exception as e:
-                    print("message:{0}".format(e))
-
-            ##新翼型の描画
+            #新翼型の描画
             if (gen == start):
                 fig = plt.figure(figsize=(7, 7))
                 fig2 = plt.figure(figsize=(7, 7))
@@ -297,9 +246,6 @@ class nsga3_spline(nsga3_base):
                 ax2 = fig2.add_subplot(111)
                 ax1.set_xlim([-0.1,1.1])
                 ax1.set_ylim([-0.5,0.5])
-                ax2.set_xlim(0, self.obj1_max)
-                ax2.set_ylim(0, self.obj2_max)
-                #ax2.set_zlim(0, self.obj3_max)
 
             ##評価値のプロット
             p = [ind.fitness.values for ind in pop]
@@ -309,28 +255,28 @@ class nsga3_spline(nsga3_base):
             ax2.cla()
             plt.figure(fig2.number)
             plt.title('generation:'+str(gen))
-            ax2.set_xlabel("1/cl")
-            ax2.set_ylabel("cd")
+            ax2.set_xlabel("obj1")
+            ax2.set_ylabel("obj2")
             #ax2.set_zlabel("smoothness")
             #ax2.view_init(elev=11, azim=-25)
             ax2.scatter(p1, p2, marker="o", label="Population")
             ax2.autoscale(tight = True)
-            plt.savefig("./nsga3_gen/nsga3_gen_scaled"+str(gen)+".png")
+            #plt.savefig("./nsga3_gen/nsga3_gen_scaled"+str(gen)+".png")
             #ax2.set_xlim(0, self.obj1_max)
             #ax2.set_ylim(0, self.obj2_max)
             #ax2.set_zlim(0, self.obj2_max)
             #plt.savefig("./nsga3_gen/nsga3_gen"+str(gen)+".png")
-            #plt.pause(0.1)
+            plt.pause(0.1)
             d = fc.spline_foil(X, Y)
             newdat = [[a, b] for a, b in zip(d[0], d[1])]
-            fc.write_datfile(datlist=newdat,newfile_name = "./foil_dat_gen/newfoil_gen"+str(gen)+str(".dat"))
+            fc.write_datfile(datlist=newdat,newfile_name = "./newfoil_gen"+str(gen)+str(".dat"))
             ax1.cla()
             plt.figure(fig.number)
             ax1.set_xlim([-0.1,1.1])
             ax1.set_ylim([-0.5,0.5])
             ax1.plot(d[0],d[1])
             plt.title('generation:'+str(gen))
-            plt.savefig("./newfoil_gen/newfoil_gen"+str(gen)+".png")
+            plt.savefig("./newfoil_gen"+str(gen)+".png")
             plt.pause(0.1)
 
 
@@ -340,7 +286,7 @@ class nsga3_spline(nsga3_base):
             # Compile statistics about the new population
             record = stats.compile(pop)
             logbook.record(gen=gen, evals=len(invalid_ind), **record)
-            with SetIO('stats2.log'):
+            with SetIO('stats.log'):
                 #stas.logに統計データを出力
                 print(logbook.stream)
 

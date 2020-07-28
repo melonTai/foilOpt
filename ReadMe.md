@@ -1,56 +1,47 @@
-# 翼型最適化プログラム
-## 各ファイルの説明
+# 動作環境
+```
+python 3.6.8
+gfortran 環境変数パス追加済み
+gcc 環境変数パス追加済み
+```
+# 使用モジュール
+```
+cycler==0.10.0
+deap==1.3.1
+kiwisolver==1.2.0
+matplotlib==3.3.0
+numpy==1.19.1
+Pillow==7.2.0
+pyparsing==2.4.7
+python-dateutil==2.8.1
+six==1.15.0
+xfoil==0.0.16
+```
+# セットアップ
+## 手順1
+(http://mingw-w64.org/doku.php/download)から端末に対応するmingwインストーラーをダウンロード。
 
-### foilConductor.py
-主に翼型ファイルの操作する関数群
-- 翼型読み取り、書き出し
-- 翼型のx座標を揃える
-- 翼型の混合
-- spline曲線による翼型生成
-- etc...
+ここでは、Windows10に[MingW-W64-builds](http://mingw-w64.org/doku.php/download/mingw-builds)をダウンロードした。
 
-### XfoilAnalize.py
-翼型解析ソフトxfoilを使用し、解析結果を取得するクラス
-昨日は以下の4つ
-- 揚力係数を元に計算する
-- 迎角を元に計算する
-- 複数の揚力係数をまとめて計算する
-- 複数の迎角をまとめて計算する
+## 手順2
+インストーラーを起動し、誘導に従ってダウンロード。
 
-### const.py
-定数を保存するファイル
+ここでは、
+```
+Version : 8.1.0
+Architecture : x86_64
+Threads : posix
+Exception : seh
+Build : revision 0
+```
+とした。
 
-### main_mixfoil.py
-アルゴリズムNSGA3を用いて、翼型を最適化するファイル。
-翼型の既存翼型の混合によって生成し、その混合比を最適化する
-このファイルから実行できる。
+## 手順3
+ダウンロードしたディレクトリ内にあるgfortran.exeとgcc.exeが入ったディレクトリを環境変数のPATHに登録する。
 
-ライブラリ(xfoil)の仕様で以下環境が必要
-https://pypi.org/project/xfoil/
-- gfortran
-- gcc
-- python3.6
+# 概要
+翼型を最適化するプログラム。最適化のアルゴリズムには、NSGA3という遺伝的アルゴリズムの一種を用いている。翼型の生成を以下2種類の方法で行った。
+- 既存翼型を混合する
+- 3次スプライン曲線で結ぶ
 
-
-### nsga3_mixfoil.py
-main_mixfoil.pyをクラス化したもの
-
-### nsga3_spline.py
-アルゴリズムNSGA3を用いて、翼型を最適化するファイル。
-翼型を8つの点を結んだスプライン曲線によって生成し、その8つの点を最適化する。
-このファイルから実行できる。
-
-ライブラリ(xfoil)の仕様で以下環境が必要
-https://pypi.org/project/xfoil/
-- gfortran
-- gcc
-- python3.6
-
-### GUI_main.py
-開発中GUIのmainwindow
-
-### Dialogs.py
-開発中GUIのダイアログ
-
-### Ui_module
-GUI_main.pyやDialogs.pyで使用するUiデザインをまとめたフォルダ
+次の章でそれぞれの説明をする。

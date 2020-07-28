@@ -70,52 +70,29 @@ class nsga3(nsga3_base):
         newdat = fc.interpolate_dat(datlist_shaped_list,ratios)
 
         #翼型の形に関する情報を取得する
-        #foilpara == [最大翼厚、最大翼厚位置、最大キャンバ、最大キャンバ位置、S字の強さ]
-        foil_para = fc.get_foil_para(newdat)
+        mt, mta, mc, mca, s, crossed, bd, bt, bc, smooth, td = fc.get_foil_para(newdat)
 
         #新しい翼型をAerofoilオブジェクトに適用
         datx = np.array([ax[0] for ax in newdat])
         daty = np.array([ax[1] for ax in newdat])
         newfoil = Airfoil(x = datx, y = daty)
 
-        mt, mta, mc, mca, s, crossed, bd, bt, bc, smooth, td = foil_para
-
         #----------------------------------
         #翼の形に関する拘束条件
         #----------------------------------
-        """
         penalty = 0
-        for g, p in zip(self.gs, self.penalties):
-            if(not g):
-                penalty += p
-        """
-
-        penalty = 0
-        print('===================')
+        #キャンバに関する拘束条件
         if(mc<0):
-            print("out of the border")
-            print("reverse_cmaber")
             penalty -= mc
+        #最大翼厚に関する拘束条件
         if(mt<0.08):
-            print("out of the border")
-            print("too_thin")
             penalty += 0.08-mt
         if(mt>0.11):
-            print("out of the border")
-            print("too_fat")
             penalty += mt-0.11
-        #if(foil_para[4]>0.03):
-        #    print("out of the border")
-        #    print("peacock")
-        #    print('===================')
-        #    return (1.0+(foil_para[4]-0.03),)*NOBJ
+        #最大翼厚位置に関する拘束条件
         if(mta<0.23):
-            print("out of the border")
-            print("Atama Dekkachi!")
             penalty += 0.23 - mta
         if(mta>0.3):
-            print("out of the border")
-            print("Oshiri Dekkachi!")
             penalty += mta - 0.3
 
         #----------------------------------
@@ -128,28 +105,16 @@ class nsga3(nsga3_base):
         #境界要素法計算時1ステップにおける計算回数
         xf.max_iter = 60
         xf.print = False
-        #print("hi")
-        #print(vars)
-        #scope = locals()
-        #var0, var1, var2, var3, var4, var5, var6, var7 = [0 if var == None or var == '' else eval(var,scope) for var in self.vars]
 
         #計算結果格納
         a, cl, cd, cm, cp = xf.cseq(0.4, 1.1, 0.1)
-        lr = [l/d for l, d in zip(cl,cd)]
         #----------------------------------
         #目的値
         #----------------------------------
-        """
-        try:
-            obj1,obj2,obj3 = [eval(o) for o in Os]
-        except Exception as e:
-            obj1,obj2,obj3=[1.0]*self.NOBJ
-            traceback.print_exc()
-        """
-
         try:
             #揚抗比の逆数を最小化
             obj1 = 1/lr[1]
+
             #揚抗比のピークを滑らかに(安定性の最大化)
             maxlr = max(lr)
             maxlr_index = lr.index(maxlr)
@@ -157,16 +122,19 @@ class nsga3(nsga3_base):
 
             #下面の反りを最小化(製作再現性の最大化)
             obj3 = s
+
+        #解析が発散した際の評価値
+        DELTA = 1e10
         except Exception as e:
-            obj1,obj2,obj3=[1.0]*self.NOBJ
+            obj1,obj2,obj3=[DELTA]*self.NOBJ
             traceback.print_exc()
 
         if (np.isnan(obj1) or obj1 > 1):
-            obj1 = 1
+            obj1 = DELTA
         if (np.isnan(obj2) or obj2 > 1):
-            obj2 = 1
+            obj2 = DELTA
         if (np.isnan(obj3) or obj3 > 1):
-            obj3 = 1
+            obj3 = DELTA
 
         obj1 += penalty
         obj2 += penalty
@@ -196,10 +164,6 @@ class nsga3(nsga3_base):
         #初期化(個体生成のこと)
         pop = self.toolbox.population(n=self.MU)
 
-        #描画準備
-        plt.ion()
-
-        #進化の始まり
         # Begin the generational process
         for gen in range(self.NGEN):
 
@@ -235,7 +199,6 @@ class nsga3(nsga3_base):
             #----------------------------------
             #途中経過プロット
             #----------------------------------
-
             #1世代ごとに翼型をファイルに書き出す
             k = 0
             for ind in pop[:10]:
@@ -248,9 +211,8 @@ class nsga3(nsga3_base):
                     fc.write_datfile(datlist=newdat,newfile_name = "newfoil"+str(k)+str(".dat"))
                 except Exception as e:
                     print("message:{0}".format(e))
-            #
 
-            ##翼型それぞれの評価値を出力する
+            #翼型それぞれの評価値を出力する
             k = 0
             for ind, fit in zip(pop, pop_fit):
                 try:
@@ -259,51 +221,55 @@ class nsga3(nsga3_base):
                     print("individual:" + str(ind) + "\nfit:" + str(fit))
                 except Exception as e:
                     print("message:{0}".format(e))
-            #
 
-            plt.cla()#消去
-            ##新翼型の描画
+            #新翼型の描画
             datlist_list = [fc.read_datfile(file) for file in self.datfiles]
             datlist_shaped_list = [fc.shape_dat(datlist) for datlist in datlist_list]
             newdat = fc.interpolate_dat(datlist_shaped_list,self.decoder(pop[0],self.code_division))
-            fc.write_datfile(datlist=newdat,newfile_name = "./foil_dat_gen/newfoil_gen"+str(gen)+str(".dat"))
+            fc.write_datfile(datlist=newdat,newfile_name = "./newfoil_gen"+str(gen)+str(".dat"))
+
+            if (gen == 0):
+                fig = plt.figure(figsize=(7, 7))
+                fig2 = plt.figure(figsize=(7, 7))
+                ax1 = fig.add_subplot(111)
+                ax2 = fig2.add_subplot(111, projection = '3d')
+                ax1.set_xlim([-0.1,1.1])
+                ax1.set_ylim([-0.5,0.5])
+                ax2.set_xlim(0, 1)
+                ax2.set_ylim(0, 1)
+                ax2.set_zlim(0, 1)
+
+            #評価値のプロット
+            p = [ind.fitness.values for ind in pop]
+            p1 = [i[0] for i in p if i[0]]
+            p2 = [i[1] for i in p if i[1]]
+            p3 = [i[2] for i in p if i[2]]
+            ax2.cla()
+            plt.figure(fig2.number)
             plt.title('generation:'+str(gen))
+            ax2.set_xlabel("obj1")
+            ax2.set_ylabel("obj2")
+            ax2.set_zlabel("obj3")
+            ax2.view_init(elev=11, azim=-25)
+            ax2.scatter(p1, p2, p3, marker="o", label="Population")
+            ax2.autoscale(tight = True)
+            plt.pause(0.1)
             newdat_x = [dat[0] for dat in newdat]
             newdat_y = [dat[1] for dat in newdat]
-            plt.xlim([0,1])
-            plt.ylim([-0.5,0.5])
-            plt.plot(newdat_x,newdat_y)
-            plt.savefig("./newfoil_gen/newfoil_gen"+str(gen)+".png")
-            plt.draw()#描画
-            plt.pause(0.1)#描画待機
-
-            ##評価値のプロット
-            fig = plt.figure(figsize=(7, 7))
-            ax = fig.add_subplot(111, projection="3d")
-            p = [ind.fitness.values for ind in pop]
-            p1 = [i[0] for i in p]
-            p2 = [j[1] for j in p]
-            p3 = [k[2] for k in p]
-            ax.set_xlim(0,self.obj1_max)
-            ax.set_ylim(0,self.obj2_max)
-            ax.set_zlim(0,self.obj3_max)
-            ax.scatter(p1, p2, p3, marker="o", s=24, label="Final Population")
-            ref = tools.uniform_reference_points(self.NOBJ, self.P)
-            ax.scatter(ref[:, 0], ref[:, 1], ref[:, 2], marker="o", s=24, label="Reference Points")
-            ax.view_init(elev=11, azim=-25)
-            #ax.autoscale(tight=True)
-            plt.legend()
-            plt.title("nsga3_gen:"+str(gen))
-            plt.tight_layout()
-            plt.savefig("./nsga3_gen/nsga3_gen"+str(gen)+".png")
-            plt.close()
+            ax1.cla()
+            plt.figure(fig.number)
+            ax1.set_xlim([-0.1,1.1])
+            ax1.set_ylim([-0.5,0.5])
+            ax1.plot(newdat_x,newdat_y)
+            plt.title('generation:'+str(gen))
+            plt.pause(0.1)
             #======================================================
 
 
             # Compile statistics about the new population
             record = stats.compile(pop)
             logbook.record(gen=gen, evals=len(invalid_ind), **record)
-            with SetIO('stats2.log'):
+            with SetIO('stats.log'):
                 #stas.logに統計データを出力
                 print(logbook.stream)
 
@@ -321,18 +287,6 @@ if __name__ == "__main__":
     #最終世代の評価値取得
     pop_fit = np.array([ind.fitness.values for ind in pop])
 
-    #10個の最適翼型候補をファイルに書き出す
-    k = 0
-    for ind, fit in zip(pop[:10], pop_fit[:10]):
-        try:
-            k += 1
-            datlist_list = [fc.read_datfile(file) for file in datfiles]
-            datlist_shaped_list = [fc.shape_dat(datlist) for datlist in datlist_list]
-            newdat = fc.interpolate_dat(datlist_shaped_list,decoder(ind,code_division))
-            fc.write_datfile(datlist=newdat,newfile_name = "newfoil"+str(k)+str(".dat"))
-        except Exception as e:
-            print("message:{0}".format(e))
-
     #10個の最適翼型候補の評価値を出力
     k = 0
     for ind, fit in zip(pop, pop_fit):
@@ -342,24 +296,3 @@ if __name__ == "__main__":
             print("individual:" + str(ind) + "\nfit:" + str(fit))
         except Exception as e:
             print("message:{0}".format(e))
-
-    #pf = problem.pareto_front(ref_points)
-    #print(igd(pop_fit, pf))
-
-    fig = plt.figure(figsize=(7, 7))
-    ax = fig.add_subplot(111, projection="3d")
-
-    p = np.array([ind.fitness.values for ind in pop])
-    ax.scatter(p[:, 0], p[:, 1], p[:, 2], marker="o", s=24, label="Final Population")
-
-    #ax.scatter(pf[:, 0], pf[:, 1], pf[:, 2], marker="x", c="k", s=32, label="Ideal Pareto Front")
-
-    ref_points = tools.uniform_reference_points(NOBJ, P)
-
-    ax.scatter(ref_points[:, 0], ref_points[:, 1], ref_points[:, 2], marker="o", s=24, label="Reference Points")
-
-    ax.view_init(elev=11, azim=-25)
-    ax.autoscale(tight=True)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig("nsga3.png")
