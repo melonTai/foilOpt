@@ -10,8 +10,8 @@
 # 動作環境
 ```
 python 3.6.8
-gfortran 環境変数パス追加済み
-gcc 環境変数パス追加済み
+gfortran 環境変数にパス追加済み
+gcc 環境変数にパス追加済み
 ```
 # 使用モジュール
 ```
@@ -73,7 +73,7 @@ windows内の検索機能で「環境変数」と検索し、「システム環�
 
 ![env_path4](https://user-images.githubusercontent.com/60560614/88700990-67f03c00-d144-11ea-8f54-cddb45443fce.png)
 
-右上の「新規」をクリックし、gfortran.exeとgcc.exeが入ったディレクトリの絶対パスを入力
+右上の「新規」をクリックし、gfortran.exeとgcc.exeが入ったディレクトリの絶対パスを入力し、「OK」クリック
 
 ## 手順5
 gccとgfortranが環境変数のPATHに正しく登録されたか確認する。
