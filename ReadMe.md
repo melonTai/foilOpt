@@ -19,7 +19,8 @@ xfoil==0.0.16
 ```
 # セットアップ
 ## 手順1
-(http://mingw-w64.org/doku.php/download)から端末に対応するmingwインストーラーをダウンロード。
+http://mingw-w64.org/doku.php/download
+から端末に対応するmingwインストーラーをダウンロード。
 
 ここでは、Windows10に[MingW-W64-builds](http://mingw-w64.org/doku.php/download/mingw-builds)をダウンロードした。
 
