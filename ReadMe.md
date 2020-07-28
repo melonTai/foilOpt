@@ -37,6 +37,8 @@ Build : revision 0
 ```
 とした。
 
+![mingw-setting](https://user-images.githubusercontent.com/60560614/88699448-5017b880-d142-11ea-813d-2b837d12cb95.png)
+
 ## 手順3
 ダウンロードしたディレクトリ内にあるgfortran.exeとgcc.exeが入ったディレクトリを環境変数のPATHに登録する。
 
