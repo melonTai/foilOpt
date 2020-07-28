@@ -21,10 +21,6 @@ import os
 import sys
 import traceback
 
-#並列処理
-from multiprocessing.dummy import Pool,Value
-
-
 #翼型解析ライブラリ
 from xfoil import XFoil
 from xfoil.model import Airfoil
@@ -43,7 +39,6 @@ class nsga3(nsga3_base):
         self.datfiles = ['foils/AG24.dat','foils/AG14.dat','foils/AG16.dat','foils/AG38.dat','foils/SD8040 (10%).dat']
         self.code_division = 4#混合比率をコードにする際の分解数
         self.NDIM = len(self.datfiles)*self.code_division#遺伝子数=親翼型の数×比率の分解能
-        self.thread = 4
         self.re = 150000
 
     def decoder(self,individual,code_division):
@@ -186,9 +181,6 @@ class nsga3(nsga3_base):
     #=====================================================
     def main(self,seed=None):
         self.setup()
-        #同時並列数(空白にすると最大数になる)
-        self.pool = Pool(self.thread)
-        self.toolbox.register("map", self.pool.map)
 
         random.seed(seed)
         # Initialize statistics object

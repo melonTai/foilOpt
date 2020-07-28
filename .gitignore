@@ -1,2 +1,6 @@
 __pycache__/
 nsga3_test.py
+Lib/
+Scripts/
+include/
+pyvenv.cfg
