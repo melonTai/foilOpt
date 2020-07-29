@@ -98,9 +98,6 @@ def shape_dat(datlist):
     #print(newdat)
     return datlist_shaped
 
-def _return_abs(n):
-    return abs(n);
-
 def spline_foil(x,y,num = 300):
     """
     受け取った座標を3次b-spline補完する関数
@@ -203,7 +200,7 @@ def get_foil_para(datlist_shaped):
 
     max_thick = max(thick_list)
     max_thick_at = datlist_x_u[thick_list.index(max_thick)]
-    max_camber = max(camber_list,key =_return_abs)
+    max_camber = max(camber_list,key = abs)
     max_camber_at = datlist_x_u[camber_list.index(max_camber)]
     shape_s = max(datlist_y_d)-min(datlist_y_d)
     crossed = not (all([t < 0 for t in thick_list[1:len(thick_list)-1]]) or all([t > 0 for t in thick_list[1:len(thick_list)-1]]))
