@@ -112,14 +112,14 @@ py -3.6 -m pip install -r requirements.txt
 例としては、
 ```
 py -3.6 -m venv [プロジェクト名]
-Script\activate
+Scripts\activate
 pip install -r requirements.txt
 ```
 これによって、上に示した環境下での運用が可能。
 
 また、以下のコマンドで仮想環境を抜けられる。
 ```
-Script\deactivate
+Scripts\deactivate
 ```
 
 # 使用方法
