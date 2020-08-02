@@ -111,8 +111,8 @@ py -3.6 -m pip install -r requirements.txt
 
 例としては、
 ```
-py -3.6 -m venv [プロジェクト名]
-cd [プロジェクト名]
+py -3.6 -m venv [ダウンロードしたレポジトリのパス]
+cd [ダウンロードしたレポジトリのパス]
 Scripts\activate
 pip install -r requirements.txt
 ```
@@ -124,7 +124,7 @@ Scripts\deactivate
 ```
 以降は、
 ```
-cd [プロジェクトフォルダパス]
+cd [ダウンロードしたレポジトリのパス]
 Scripts\activate
 ```
 のみで同じ仮想環境を構築可能
