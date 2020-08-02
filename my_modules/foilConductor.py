@@ -1,6 +1,6 @@
 import numpy as np
 #定数を保存するファイル
-import const
+from . import _const as const
 from sys import exit
 from scipy import interpolate
 import random

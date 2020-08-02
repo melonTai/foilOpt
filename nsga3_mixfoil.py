@@ -57,7 +57,8 @@ class nsga3(nsga3_base):
     #評価関数の定義
     #=====================================================
     def evaluate(self,individual):
-
+        #解析が発散した際の評価値
+        DELTA = 1e10
         #----------------------------------
         #遺伝子に基づいて新翼型を生成
         #----------------------------------
@@ -123,8 +124,6 @@ class nsga3(nsga3_base):
             #下面の反りを最小化(製作再現性の最大化)
             obj3 = s
 
-        #解析が発散した際の評価値
-        DELTA = 1e10
         except Exception as e:
             obj1,obj2,obj3=[DELTA]*self.NOBJ
             traceback.print_exc()
@@ -280,19 +279,19 @@ if __name__ == "__main__":
     #翼型最適化開始
     try:
         pop, stats = ng.main()
+        #最終世代の評価値取得
+        pop_fit = np.array([ind.fitness.values for ind in pop])
+
+        #10個の最適翼型候補の評価値を出力
+        k = 0
+        for ind, fit in zip(pop, pop_fit):
+            try:
+                k += 1
+                print(k)
+                print("individual:" + str(ind) + "\nfit:" + str(fit))
+            except Exception as e:
+                print("message:{0}".format(e))
+
     except KeyboardInterrupt:
         print("Ctrl + Cで停止しました")
         pass
-
-    #最終世代の評価値取得
-    pop_fit = np.array([ind.fitness.values for ind in pop])
-
-    #10個の最適翼型候補の評価値を出力
-    k = 0
-    for ind, fit in zip(pop, pop_fit):
-        try:
-            k += 1
-            print(k)
-            print("individual:" + str(ind) + "\nfit:" + str(fit))
-        except Exception as e:
-            print("message:{0}".format(e))

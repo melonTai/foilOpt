@@ -25,10 +25,6 @@ import traceback
 from xfoil import XFoil
 from xfoil.model import Airfoil
 
-#自作モジュール
-import foilConductor as fc
-from change_output import SetIO
-
 class nsga3_base(object):
     """
     遺伝的アルゴリズムのテンプレートクラス
