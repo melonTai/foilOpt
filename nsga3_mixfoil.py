@@ -33,9 +33,6 @@ from my_modules.nsga3_base import nsga3_base
 class nsga3(nsga3_base):
     def __init__(self):
         super().__init__()
-        self.obj1_max = 1
-        self.obj2_max = 1
-        self.obj3_max = 1
         self.datfiles = ['foils/AG24.dat','foils/AG14.dat','foils/AG16.dat','foils/AG38.dat','foils/SD8040 (10%).dat']
         self.code_division = 4#混合比率をコードにする際の分解数
         self.NDIM = len(self.datfiles)*self.code_division#遺伝子数=親翼型の数×比率の分解能

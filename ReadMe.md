@@ -112,6 +112,7 @@ py -3.6 -m pip install -r requirements.txt
 例としては、
 ```
 py -3.6 -m venv [プロジェクト名]
+cd [プロジェクト名]
 Scripts\activate
 pip install -r requirements.txt
 ```
@@ -121,6 +122,21 @@ pip install -r requirements.txt
 ```
 Scripts\deactivate
 ```
+以降は、
+```
+cd [プロジェクトフォルダパス]
+Scripts\activate
+```
+のみで同じ仮想環境を構築可能
 
 # 使用方法
-作成中
+## nsga3_mixfoil.pyについて
+基本的に__init__関数内の以下のパラメータを書き換え、もしくは追加して使用する
+### 最も簡単な使い方
+以下の変数を書き換える
+- self.datfiles
+  混合する翼型のdatファイルパスをリストにして代入
+- self.re
+  最適化を行うレイノルズ数を代入
+## nsga3_spline.pyについて
+準備中
