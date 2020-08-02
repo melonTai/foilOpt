@@ -53,7 +53,7 @@ def decoder(individual,code_division):
 obj1_max = 1
 obj2_max = 1
 obj3_max = 1
-foil_path = 'foils/'
+foil_path = '../foils/'
 datfiles = ['AG24.dat','AG14.dat','AG16.dat','AG38.dat','SD8040 (10%).dat']
 #['AG24.dat','AG14.dat','AG16.dat','AG38.dat','SD8040 (10%).dat','SD7084 (9.6%).dat','SD7037.dat']
 #---------------------------------------

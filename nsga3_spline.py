@@ -1,4 +1,3 @@
-from nsga3_base import nsga3_base
 import numpy as np
 import random
 
@@ -24,9 +23,9 @@ from xfoil.model import Airfoil
 import XfoilAnalize as xa
 
 #自作モジュール
-import foilConductor as fc
-from change_output import SetIO
-import timeout_decorator
+from my_modules import foilConductor as fc
+from my_modules.change_output import SetIO
+from my_modules.nsga3_base import nsga3_base
 
 class nsga3_spline(nsga3_base):
     #遺伝子

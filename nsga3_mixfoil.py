@@ -26,9 +26,9 @@ from xfoil import XFoil
 from xfoil.model import Airfoil
 
 #自作モジュール
-import foilConductor as fc
-from change_output import SetIO
-from nsga3_base import nsga3_base
+from my_modules import foilConductor as fc
+from my_modules.change_output import SetIO
+from my_modules.nsga3_base import nsga3_base
 
 class nsga3(nsga3_base):
     def __init__(self):
