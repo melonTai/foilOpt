@@ -69,9 +69,11 @@ class nsga3_spline(nsga3_base):
             f.write(output)
         return file
 
+    #=====================================================
+    #評価関数の定義
+    #=====================================================
     def evaluate(self,individual):
         DELTA = 1e10
-        print("====================")
         #----------------------------------
         #遺伝子に基づいて新翼型を生成
         #----------------------------------
@@ -91,9 +93,19 @@ class nsga3_spline(nsga3_base):
         shape_dat = fc.shape_dat([[a, b] for a, b in zip(newdat[0][::-1], newdat[1][::-1])])
 
         #翼型の形に関する情報を取得する
-        #foilpara == [最大翼厚、最大翼厚位置、最大キャンバ、最大キャンバ位置、S字の強さ]
         foil_para = fc.get_foil_para(shape_dat)
         mt, mta, mc, mca, s, crossed, bd, bt, bc, smooth, td = foil_para
+        # mt: 最大翼厚(百分率)
+        # mta: 最大翼厚位置(百分率)
+        # mc: 最大キャンバー(百分率)
+        # mca: 最大きゃんばー位置(百分率)
+        # s: 翼型の下面における、最大y座標-最小y座標
+        # crossed: 翼型が交差しているならTrue,それ以外ならFalse
+        # bd: 翼型の粗さ(大きいほど粗い)
+        # bt: 翼厚分布の粗さ(大きいほど粗い)
+        # bc: キャンバー分布の粗さ(大きいほど粗い)
+        # smooth: 無視
+        # td: 翼厚分布
 
         if crossed:
             print("crossed_a")
@@ -143,7 +155,7 @@ class nsga3_spline(nsga3_base):
                 obj1 = 1/cl
             else:
                 obj1 = self.delta
-            #揚抗比のピークを滑らかに(安定性の最大化)
+            
             obj2 = cd
 
 
@@ -158,6 +170,10 @@ class nsga3_spline(nsga3_base):
 
         return [obj1 + penalty, obj2 + penalty]
 
+
+    #=====================================================
+    #最適化アルゴリズム本体
+    #=====================================================
     def main(self):
         self.setup()
 
